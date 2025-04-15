@@ -25,18 +25,36 @@ body.dark {
   color: var(--color-text);
 }
 
+body, h1, h2, h3, p, label {
+  font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+  body, h1, h2, h3, p, label {
+    font-size: 0.95rem;
+  }
+}
+
 #app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding: 1rem;
-  width: 100%;
-  box-sizing: border-box;
 }
 
-/* Responsive grid for friends/expenses */
+@media (max-width: 600px) {
+  #app {
+    max-width: 100vw;
+    padding: 0.5rem;
+  }
+}
+
 .friends-grid {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
@@ -44,26 +62,35 @@ body.dark {
   width: 100%;
   max-width: 700px;
   margin: 2rem auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .friends-grid {
+    max-width: 100vw;
+    margin: 1rem 0;
+  }
 }
 
 @media (max-width: 700px) {
   .friends-grid {
     grid-template-columns: 1fr;
     gap: 0.5rem;
-    max-width: 100%;
+    max-width: 100vw;
+    margin: 0.5rem 0;
   }
   .friends-grid > div {
     min-width: 0;
     width: 100%;
-  }
-  #app {
-    padding: 0.5rem;
+    box-sizing: border-box;
   }
 }
 
 input, button {
   max-width: 100%;
   box-sizing: border-box;
+  font-size: 1rem;
+  min-height: 44px;
 }
 
 /* Animations, skeletons, micro-interactions, and more will be added as features are implemented */
