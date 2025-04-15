@@ -32,6 +32,8 @@ body.dark {
   justify-content: flex-start;
   align-items: center;
   padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Responsive grid for friends/expenses */
@@ -42,6 +44,26 @@ body.dark {
   width: 100%;
   max-width: 700px;
   margin: 2rem auto;
+}
+
+@media (max-width: 700px) {
+  .friends-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+  .friends-grid > div {
+    min-width: 0;
+    width: 100%;
+  }
+  #app {
+    padding: 0.5rem;
+  }
+}
+
+input, button {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Animations, skeletons, micro-interactions, and more will be added as features are implemented */
