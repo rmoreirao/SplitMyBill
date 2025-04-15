@@ -1,0 +1,47 @@
+/* styles.css - SplitMyBill */
+:root {
+  --color-primary: #7c3aed;
+  --color-secondary: #06b6d4;
+  --color-accent: #38bdf8;
+  --color-bg: #18181b;
+  --color-bg-light: #f4f4f5;
+  --color-text: #f1f5f9;
+  --color-text-dark: #18181b;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+  --border-radius: 1rem;
+  --transition: 0.2s cubic-bezier(.4,2,.6,1);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-light);
+  color: var(--color-text-dark);
+  transition: background var(--transition), color var(--transition);
+}
+
+body.dark {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* Responsive grid for friends/expenses */
+.friends-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 700px;
+  margin: 2rem auto;
+}
+
+/* Animations, skeletons, micro-interactions, and more will be added as features are implemented */

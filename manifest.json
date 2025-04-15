@@ -1,0 +1,21 @@
+{
+  "name": "SplitMyBill",
+  "short_name": "SplitMyBill",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#7c3aed",
+  "description": "Effortlessly split bills with friends. Modern, accessible, and fun!",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
