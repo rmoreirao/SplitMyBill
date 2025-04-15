@@ -26,7 +26,13 @@ function nerdyEasterEgg() {
 
 // Utility: Format number according to locale
 function formatNumberLocale(value) {
-  let num = Number(value.toString().replace(/,/g, '').replace(/ /g, '').replace(/(\s|\u00A0)/g, ''));
+  let num;
+  if (typeof value === 'string') {
+    num = parseLocaleNumber(value);
+  } else {
+    num = Number(value);
+  }
+  
   if (isNaN(num) || value === '' || value == null) return DEFAULT_ZERO;
   return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -34,16 +40,22 @@ function formatNumberLocale(value) {
 // Utility: Parse a locale-formatted number string to float
 function parseLocaleNumber(str) {
   if (typeof str !== 'string') return 0;
-  // Remove all non-numeric except . and ,
+  
+  const decimalSeparator = getLocaleDecimalSeparator();
   let cleaned = str.replace(/[^\d.,-]/g, '');
-  // If comma is decimal separator (e.g. 1.234,56), replace . with '' and , with .
-  if ((cleaned.match(/,/g) || []).length === 1 && (cleaned.match(/\./g) || []).length > 1) {
-    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-  } else if ((cleaned.match(/,/g) || []).length === 1 && (cleaned.match(/\./g) || []).length === 0) {
-    cleaned = cleaned.replace(',', '.');
+  
+  if (decimalSeparator === ',') {
+    const lastCommaIndex = cleaned.lastIndexOf(',');
+    if (lastCommaIndex !== -1) {
+      cleaned = cleaned.substring(0, lastCommaIndex).replace(/\./g, '').replace(/,/g, '') + 
+               '.' + cleaned.substring(lastCommaIndex + 1);
+    } else {
+      cleaned = cleaned.replace(/\./g, '');
+    }
   } else {
     cleaned = cleaned.replace(/,/g, '');
   }
+  
   let num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
 }
@@ -56,12 +68,9 @@ function getLocaleDecimalSeparator() {
 // Utility: Build locale-aware regex for number validation
 function getLocaleNumberRegex() {
   const sep = getLocaleDecimalSeparator();
-  // Accepts: optional minus, digits, optional group sep, optional decimal sep and 2 digits
   if (sep === ',') {
-    // e.g. 1.234,56 or 1234,56 or 30,00
     return /^-?\d{1,3}(\.\d{3})*(,\d{0,2})?$|^-?\d+(,\d{0,2})?$/;
   } else {
-    // e.g. 1,234.56 or 1234.56 or 30.00
     return /^-?\d{1,3}(,\d{3})*(\.\d{0,2})?$|^-?\d+(\.\d{0,2})?$/;
   }
 }
@@ -97,7 +106,6 @@ function renderLanding() {
 // Render Friends/Expense Form
 function renderFriendsForm() {
   state.step = 1;
-  // Initialize friends if not already
   if (!state.friends.length) {
     state.friends = Array.from({ length: state.numFriends }, (_, i) => ({
       name: `Friend${i + 1}`,
@@ -141,7 +149,6 @@ function renderFriendsForm() {
       </div>
     </section>
   `;
-  // Add event listeners
   document.querySelectorAll('.friend-name').forEach(input => {
     input.addEventListener('input', e => {
       const idx = +e.target.dataset.friendIdx;
@@ -150,32 +157,44 @@ function renderFriendsForm() {
   });
   document.querySelectorAll('.bill-input').forEach(input => {
     input.addEventListener('blur', e => {
-      let val = e.target.value.replace(/[^\d.,-]/g, '');
-      if (val === '' || isNaN(parseLocaleNumber(val))) {
+      let val = e.target.value.trim();
+      if (val === '') {
         val = DEFAULT_ZERO;
+        e.target.value = val;
+        const fIdx = +e.target.dataset.friendIdx;
+        const bIdx = +e.target.dataset.billIdx;
+        state.friends[fIdx].bills[bIdx] = val;
+        document.getElementById(`friend-total-${fIdx}`).textContent = calcFriendTotal(state.friends[fIdx].bills);
+        return;
       }
-      e.target.value = formatNumberLocale(val);
-      // Update state with normalized value
+      const num = parseLocaleNumber(val);
+      const localeRegex = getLocaleNumberRegex();
+      if (!localeRegex.test(val)) {
+        val = formatNumberLocale(num);
+        e.target.value = val;
+      }
       const fIdx = +e.target.dataset.friendIdx;
       const bIdx = +e.target.dataset.billIdx;
-      state.friends[fIdx].bills[bIdx] = formatNumberLocale(val);
+      state.friends[fIdx].bills[bIdx] = val;
       document.getElementById(`friend-total-${fIdx}`).textContent = calcFriendTotal(state.friends[fIdx].bills);
     });
     input.addEventListener('input', e => {
-      const fIdx = +e.target.dataset.friendIdx;
-      const bIdx = +e.target.dataset.billIdx;
-      let val = e.target.value.replace(/[^\d.,-]/g, '');
+      let val = e.target.value.trim();
+      if (val === '') {
+        e.target.setCustomValidity('');
+        return;
+      }
+      const decimalSeparator = getLocaleDecimalSeparator();
       const example = (1234.56).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-      const localeRegex = getLocaleNumberRegex();
-      if (!localeRegex.test(val)) {
+      const inputRegex = decimalSeparator === ',' 
+        ? /^-?\d{1,}(\.\d{3})*?(,\d{0,2})?$/ 
+        : /^-?\d{1,}(,\d{3})*?(\.\d{0,2})?$/;
+      if (!inputRegex.test(val)) {
         e.target.setCustomValidity(`Please enter a valid amount, e.g. ${example}`);
         e.target.reportValidity();
-        val = DEFAULT_ZERO;
       } else {
         e.target.setCustomValidity('');
       }
-      state.friends[fIdx].bills[bIdx] = val;
-      document.getElementById(`friend-total-${fIdx}`).textContent = calcFriendTotal(state.friends[fIdx].bills);
     });
   });
   document.querySelectorAll('.add-bill-btn').forEach(btn => {
@@ -183,7 +202,6 @@ function renderFriendsForm() {
       const idx = +btn.dataset.friendIdx;
       if (state.friends[idx].bills.length < 10) {
         state.friends[idx].bills.push(DEFAULT_ZERO);
-        // Only update the bills cell for this friend
         const billsCell = btn.parentElement;
         const bIdx = state.friends[idx].bills.length - 1;
         const newInput = document.createElement('input');
@@ -199,25 +217,51 @@ function renderFriendsForm() {
         newInput.setAttribute('inputmode', 'decimal');
         newInput.setAttribute('pattern', '^\\d{0,9}(,?\\d{3})*(\\.\\d{0,2})?$');
         billsCell.insertBefore(newInput, btn);
-        // Add event listener for new input
-        newInput.addEventListener('input', e => {
-          const fIdx = +e.target.dataset.friendIdx;
-          const bIdx = +e.target.dataset.billIdx;
-          let val = e.target.value.replace(/[^\d.,]/g, '');
-          if (!/^\d{0,9}(,?\d{3})*(\.\d{0,2})?$/.test(val)) {
-            e.target.setCustomValidity('Please enter a valid amount, e.g. 123.45');
+        // Attach the same input and blur handlers as the original bill inputs
+        newInput.addEventListener('input', function(e) {
+          let val = e.target.value.trim();
+          if (val === '') {
+            e.target.setCustomValidity('');
+            return;
+          }
+          const decimalSeparator = getLocaleDecimalSeparator();
+          const example = (1234.56).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+          const inputRegex = decimalSeparator === ',' 
+            ? /^-?\d{1,}(\.\d{3})*?(,\d{0,2})?$/ 
+            : /^-?\d{1,}(,\d{3})*?(\.\d{0,2})?$/;
+          if (!inputRegex.test(val)) {
+            e.target.setCustomValidity(`Please enter a valid amount, e.g. ${example}`);
             e.target.reportValidity();
-            val = DEFAULT_ZERO;
           } else {
             e.target.setCustomValidity('');
           }
+        });
+        newInput.addEventListener('blur', function(e) {
+          let val = e.target.value.trim();
+          if (val === '') {
+            val = DEFAULT_ZERO;
+            e.target.value = val;
+            const fIdx = +e.target.dataset.friendIdx;
+            const bIdx = +e.target.dataset.billIdx;
+            state.friends[fIdx].bills[bIdx] = val;
+            document.getElementById(`friend-total-${fIdx}`).textContent = calcFriendTotal(state.friends[fIdx].bills);
+            return;
+          }
+          const num = parseLocaleNumber(val);
+          const localeRegex = getLocaleNumberRegex();
+          if (!localeRegex.test(val)) {
+            val = formatNumberLocale(num);
+            e.target.value = val;
+          }
+          const fIdx = +e.target.dataset.friendIdx;
+          const bIdx = +e.target.dataset.billIdx;
           state.friends[fIdx].bills[bIdx] = val;
           document.getElementById(`friend-total-${fIdx}`).textContent = calcFriendTotal(state.friends[fIdx].bills);
         });
-        // Update total
         document.getElementById(`friend-total-${idx}`).textContent = calcFriendTotal(state.friends[idx].bills);
-        // Hide add button if max bills reached
         if (state.friends[idx].bills.length >= 10) btn.style.display = 'none';
+        // Focus the newly created input
+        newInput.focus();
       }
     });
   });
@@ -248,7 +292,11 @@ function renderFriendsForm() {
 }
 
 function calcFriendTotal(bills) {
-  return bills.reduce((sum, b) => sum + parseLocaleNumber(b), 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const total = bills.reduce((sum, b) => {
+    const parsed = parseLocaleNumber(b);
+    return sum + parsed;
+  }, 0);
+  return formatNumberLocale(total);
 }
 
 function validateBills() {
@@ -269,18 +317,12 @@ function validateBills() {
 // Render Calculation Summary
 function renderSummary() {
   state.step = 2;
-  // Calculate totals and settlements
   const totals = state.friends.map(f => f.bills.reduce((sum, b) => sum + parseLocaleNumber(b), 0));
   const totalSum = totals.reduce((a, b) => a + b, 0);
   const avg = totalSum / state.numFriends;
-
-  // Calculate who owes whom
   state.splitResult = calculateSettlements(totals, avg);
-
-  // Build detailed breakdown for each friend
   const totalSumStr = formatNumberLocale(totalSum);
   const avgStr = formatNumberLocale(avg);
-
   const app = document.getElementById('app');
   app.innerHTML = `
     <nav aria-label="Breadcrumb" style="margin-bottom:1rem;">
@@ -360,7 +402,6 @@ function renderSummary() {
 
 // Calculate minimal transactions to settle up
 function calculateSettlements(totals, avg) {
-  // Calculate net balances (positive: to receive, negative: to pay)
   const net = totals.map(t => +(t - avg).toFixed(2));
   const result = [];
   let debtors = [], creditors = [];
